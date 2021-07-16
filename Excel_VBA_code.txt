@@ -1,0 +1,234 @@
+Sub ClearSheets()
+'ClearSheets() is used to clear both the Input and Output sheets _
+For this purpose, a Template sheet has been created
+    
+    Sheets("Template").Select
+    Range("A1:U22").Select
+    Selection.Copy
+    Sheets("Input").Select
+    Range("A1").Select
+    ActiveSheet.Paste
+    Range("A1").Select
+    
+    Sheets("Template").Select
+    Range("F8:P20").Select
+    Selection.Copy
+    Sheets("Output").Select
+    Range("F8").Select
+    ActiveSheet.Paste
+    
+    Sheets("Input").Select
+    Range("E1").Select
+
+End Sub
+
+Sub GenerateMatrix()
+'GenerateMatrix() fills the Matrix rows, columns and diagonals _
+in the Input and Output sheets
+
+Sheets("Input").Select
+
+Dim Num, Counter As Integer
+
+Num = InputBox("Enter the number of Nodes (<=8)")
+Range("L8").Value = Num
+
+Range("H11").Select
+
+For Counter = 1 To Num
+Selection.Value = Chr(64 + Counter) 'Chr() is used to convert Integer to Character
+Selection.Offset(0, 1).Select
+Next Counter
+
+Range("G12").Select
+
+For Counter = 1 To Num
+Selection.Value = Chr(64 + Counter)
+Selection.Offset(1, 0).Select
+Next Counter
+
+Range("H12").Select
+
+For Counter = 1 To Num
+Selection.Value = "X"
+Selection.Offset(1, 1).Select
+Next Counter
+
+Sheets("Output").Select
+
+Range("H11").Select
+
+For Counter = 1 To Num
+Selection.Value = Chr(64 + Counter)
+Selection.Offset(0, 1).Select
+Next Counter
+
+Range("G12").Select
+
+For Counter = 1 To Num
+Selection.Value = Chr(64 + Counter)
+Selection.Offset(1, 0).Select
+Next Counter
+
+Range("H12").Select
+
+For Counter = 1 To Num
+Selection.Value = "X"
+Selection.Offset(1, 1).Select
+Next Counter
+
+Sheets("Input").Select
+
+Range("I12").Select
+
+End Sub
+
+Sub RunKruskal()
+'RunKruskal() is the function that runs after the user has inputted all the Edges _
+It then leads the user to the Output sheet where we can find the Nodes present _
+in the Minimum Spanning Tree highlighted in Green _
+The Algorithm used can be found in the Algorithm Sheet
+
+Sheets("Input").Select
+
+Dim Num_Node, Num_Edge As Integer
+Num_Node = Range("L8").Value
+
+Range("L9").Value = 0
+
+Dim i, j, flag() As Integer
+ReDim flag(1 To Num_Node)
+
+For i = 1 To Num_Node
+flag(i) = i
+Next i
+'flag() is used for the purpose of alloting a Parent to the each node _
+Every Node is its own Parent in the beginning _
+As each connection is made in the Minimum Spanning Tree _
+the Parent of each node in the MST connected so far _
+gets updated to the Parent of the lowest Node
+
+Dim Sort_Edge() As Edge
+ReDim Sort_Edge(1 To 30)
+'Sort_Edge is defined as an Array of Type Edge _
+It is used to store inputted Edges and then sort them in the _
+increasing order of their Edge Weights
+
+For i = 1 To Num_Node
+For j = i + 1 To Num_Node
+Range("G11").Select
+If Selection.Offset(i, j).Value <> 0 Then Range("L9").Value = Range("L9").Value + 1
+Range("G11").Select
+Num_Edge = Range("L9").Value
+If Selection.Offset(i, j).Value <> 0 Then Sort_Edge(Num_Edge).src = i
+Range("G11").Select
+If Selection.Offset(i, j).Value <> 0 Then Sort_Edge(Num_Edge).des = j
+Range("G11").Select
+If Selection.Offset(i, j).Value <> 0 Then Sort_Edge(Num_Edge).wgt = Selection.Offset(i, j).Value
+Next j
+Next i
+'The above loop construct finds the entered values row-wise and then stores _
+the src, des, wgt parameters associated with the Edge
+
+Dim Min As Edge
+
+For i = 1 To Num_Edge
+For j = 1 To Num_Edge - 1
+If (Sort_Edge(j).wgt > Sort_Edge(j + 1).wgt) Then
+    Min = Sort_Edge(j + 1)
+    Sort_Edge(j + 1) = Sort_Edge(j)
+    Sort_Edge(j) = Min
+End If
+Next j
+Next i
+'The above loop construct sorts the Sort_Edge Array of Type Edge _
+in the increasing order of the Edge Weights _
+The Sorting Algorithm used is Bubble Sort
+
+Dim Source, Dest, Num_MST_Edge, Flag_Source, Flag_Dest As Integer
+Num_MST_Edge = 0
+
+Dim Span_Tree() As Edge
+ReDim Span_Tree(1 To Num_Node - 1)
+'Span_Tree is defined as an Array of Type Edge _
+It is used to store the Edges that are a part of the Minimum Spanning Tree _
+found by the Algorithm
+
+For i = 1 To Num_Edge
+Source = Sort_Edge(i).src
+Dest = Sort_Edge(i).des
+If flag(Source) <> flag(Dest) And Num_MST_Edge < Num_Node - 1 Then
+Flag_Source = flag(Source)
+Flag_Dest = flag(Dest)
+    If (Flag_Source < Flag_Dest) Then
+        For j = 1 To Num_Node
+        If flag(j) = Flag_Dest Then flag(j) = Flag_Source
+        Next j
+        flag(Dest) = Flag_Source
+    End If
+    If (Flag_Source > Flag_Dest) Then
+        For j = 1 To Num_Node
+        If flag(j) = Flag_Source Then flag(j) = Flag_Dest
+        Next j
+        flag(Source) = Flag_Dest
+    End If
+    Num_MST_Edge = Num_MST_Edge + 1
+    Span_Tree(Num_MST_Edge) = Sort_Edge(i)
+End If
+Next i
+'In the above construct, we check whether the selected Edge forms a cycle _
+with the Minimum Spanning Tree formed so far or not _
+The Edge is not included in Span_Tree Array of Type Edge _
+if a cycle is formed
+
+Sheets("Input").Select
+Range("F8:P20").Select
+Selection.Copy
+Sheets("Output").Select
+Range("F8").Select
+ActiveSheet.Paste
+
+Range("L8").Value = Num_Node
+Range("I9").Value = "NUMBER OF EDGES IN MST"
+Range("L9").Value = Num_MST_Edge
+
+For i = 1 To Num_MST_Edge
+Range("G11").Select
+Selection.Offset(Span_Tree(i).src, Span_Tree(i).des).Select
+    With Selection.Font
+        .Size = 12
+        .Color = -11489280
+        .TintAndShade = 0
+    End With
+    Selection.Font.Bold = True
+Next i
+'The above code segment Bolds and Highlights in Green the Edges which _
+are a part of the Minimum Spanning Tree
+
+Range("G2").Value = "ALL NODES ARE CONNECTED"
+
+For i = 1 To Num_Node
+If flag(i) <> 1 Then Range("G2").Value = "ALL NODES ARE NOT CONNECTED"
+Next i
+'If flag(i) <> 1 for any Node, it is not connected to Node 1 _
+Hence the Minimum Spanning Tree thus found would not connect every Node
+
+Range("G2").Select
+
+End Sub
+
+Sub GoToAlgo()
+'GoToAlgo is used in the Output sheet to jump to the Algorithm sheet
+
+Sheets("Algorithm").Select
+Range("E4").Select
+
+End Sub
+
+Sub GoToInput()
+'GoToInput is used in the Output sheet to jump to the Input sheet
+
+Sheets("Input").Select
+Range("E1").Select
+
+End Sub
